@@ -3,6 +3,24 @@
   "description": "Contao backend module to clone dummy pages, content elements, modules and rewire references.",
   "type": "contao-bundle",
   "license": "proprietary",
+  "keywords": [
+    "contao",
+    "contao-bundle",
+    "backend",
+    "dummy",
+    "migration",
+    "cloner"
+  ],
+  "homepage": "https://git.file-archive.de/webfarben/DummyCopier",
+  "support": {
+    "source": "https://git.file-archive.de/webfarben/DummyCopier",
+    "issues": "https://git.file-archive.de/webfarben/DummyCopier/issues"
+  },
+  "authors": [
+    {
+      "name": "Webfarben"
+    }
+  ],
   "require": {
     "php": "^8.1",
     "contao/core-bundle": "^4.13 || ^5.0",

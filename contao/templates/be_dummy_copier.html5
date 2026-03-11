@@ -25,7 +25,7 @@
           </span>
           <select id="sourcePages" name="sourcePages[]" multiple size="12" style="width:100%;">
             <?php foreach (($this->pageChoices ?? []) as $id => $label): ?>
-              <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourcePages'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+              <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourcePages'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
           </select>
         <?php endif; ?>
@@ -41,7 +41,7 @@
         </span>
         <select id="sourceModules" name="sourceModules[]" multiple size="10" style="width:100%;">
           <?php foreach (($this->moduleChoices ?? []) as $id => $label): ?>
-            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceModules'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceModules'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
           <?php endforeach; ?>
         </select>
       </label>
@@ -56,7 +56,7 @@
         </span>
         <select id="sourceContent" name="sourceContent[]" multiple size="10" style="width:100%;">
           <?php foreach (($this->contentChoices ?? []) as $id => $label): ?>
-            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceContent'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceContent'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
           <?php endforeach; ?>
         </select>
       </label>
@@ -74,7 +74,7 @@
           </span>
           <select id="sourceDirectories" name="sourceDirectories[]" multiple size="10" style="width:100%;">
             <?php foreach (($this->directoryChoices ?? []) as $path => $label): ?>
-              <option value="<?= $this->specialchars((string) $path); ?>" <?= in_array((string) $path, ($this->selected['sourceDirectories'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+              <option value="<?= htmlspecialchars((string) $path, ENT_QUOTES, 'UTF-8'); ?>" <?= in_array((string) $path, ($this->selected['sourceDirectories'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
           </select>
         <?php endif; ?>
@@ -89,7 +89,7 @@
           <select name="targetParentPage" required style="width:100%;">
             <option value="">Bitte waehlen</option>
             <?php foreach (($this->pageChoices ?? []) as $id => $label): ?>
-              <option value="<?= (int) $id; ?>" <?= ((int) ($this->selected['targetParentPage'] ?? 0) === (int) $id) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+              <option value="<?= (int) $id; ?>" <?= ((int) ($this->selected['targetParentPage'] ?? 0) === (int) $id) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
           </select>
         <?php endif; ?>
@@ -97,8 +97,8 @@
     </p>
 
     <p><label>Ziel-Artikel ID (nur fuer einzelne Content-IDs):<br><input type="number" name="targetArticle" min="0" value="<?= (int) ($this->selected['targetArticle'] ?? 0); ?>"></label></p>
-    <p><label>Ziel-Verzeichnis (z. B. files/kunden/kunde-x):<br><input type="text" name="targetDirectory" style="width:100%" value="<?= $this->specialchars((string) ($this->selected['targetDirectory'] ?? '')); ?>"></label></p>
-    <p><label>Praefix fuer Titel/Name/Alias:<br><input type="text" name="namePrefix" placeholder="kunde-x-" value="<?= $this->specialchars((string) ($this->selected['namePrefix'] ?? '')); ?>"></label></p>
+    <p><label>Ziel-Verzeichnis (z. B. files/kunden/kunde-x):<br><input type="text" name="targetDirectory" style="width:100%" value="<?= htmlspecialchars((string) ($this->selected['targetDirectory'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></label></p>
+    <p><label>Praefix fuer Titel/Name/Alias:<br><input type="text" name="namePrefix" placeholder="kunde-x-" value="<?= htmlspecialchars((string) ($this->selected['namePrefix'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></label></p>
 
     <p><label><input type="checkbox" name="includeContent" value="1" checked> Seiten inkl. Artikel/Content kopieren</label></p>
     <p><label><input type="checkbox" name="copyModules" value="1" checked> Module kopieren und neu verlinken</label></p>

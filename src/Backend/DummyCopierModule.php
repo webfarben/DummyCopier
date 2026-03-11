@@ -8,13 +8,10 @@ use Webfarben\DummyCopier\Service\DummyCopier;
 use Webfarben\DummyCopier\Service\DummyCopyOptions;
 use Contao\BackendModule;
 use Contao\Environment;
-use Contao\FileTree;
 use Contao\Input;
 use Contao\Message;
-use Contao\PageTree;
 use Contao\StringUtil;
 use Contao\System;
-use Contao\Widget;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -36,6 +33,7 @@ class DummyCopierModule extends BackendModule
         $this->Template->sourcePagesWidget = '';
         $this->Template->targetParentPageWidget = '';
         $this->Template->sourceDirectoriesWidget = '';
+
         $targetParentPageId = $this->parseSingleIdInput(Input::postRaw('targetParentPage'));
 
         $this->Template->selected = [
@@ -48,8 +46,6 @@ class DummyCopierModule extends BackendModule
             'targetDirectory' => trim((string) Input::post('targetDirectory')),
             'namePrefix' => trim((string) Input::post('namePrefix')),
         ];
-
-        $this->prepareTreeWidgets();
 
         if (Input::post('FORM_SUBMIT') !== 'tl_dummy_copier') {
             return;
@@ -141,87 +137,6 @@ class DummyCopierModule extends BackendModule
         $ids = $this->parseIdInput($input);
 
         return $ids[0] ?? 0;
-    }
-
-    private function prepareTreeWidgets(): void
-    {
-        if (!class_exists(PageTree::class) || !class_exists(FileTree::class) || !class_exists(Widget::class)) {
-            return;
-        }
-
-        try {
-            $selectedPages = $this->parseIdInput(Input::postRaw('sourcePages'));
-            $selectedParent = (int) Input::post('targetParentPage');
-            $selectedDirectories = $this->parsePathInput(Input::postRaw('sourceDirectories'));
-
-            $this->Template->sourcePagesWidget = $this->renderPageTreeWidget(
-                'sourcePages',
-                'Quell-Seiten (pageTree)',
-                $selectedPages,
-                true
-            );
-
-            $this->Template->targetParentPageWidget = $this->renderPageTreeWidget(
-                'targetParentPage',
-                'Ziel-Elternseite (pageTree)',
-                $selectedParent > 0 ? [$selectedParent] : [],
-                false
-            );
-
-            $this->Template->sourceDirectoriesWidget = $this->renderFileTreeWidget(
-                'sourceDirectories',
-                'Quell-Verzeichnisse (fileTree)',
-                $selectedDirectories
-            );
-        } catch (\Throwable $exception) {
-            // If widget rendering differs by Contao version, the module falls back to select boxes.
-            $this->Template->sourcePagesWidget = '';
-            $this->Template->targetParentPageWidget = '';
-            $this->Template->sourceDirectoriesWidget = '';
-            Message::addInfo('Tree-Widgets konnten nicht initialisiert werden, Fallback-Auswahl wird verwendet.');
-        }
-    }
-
-    private function renderPageTreeWidget(string $name, string $label, array $value, bool $multiple): string
-    {
-        $attributes = Widget::getAttributesFromDca([
-            'inputType' => 'pageTree',
-            'label' => [$label, ''],
-            'eval' => [
-                'fieldType' => $multiple ? 'checkbox' : 'radio',
-                'multiple' => $multiple,
-                'tl_class' => 'clr',
-            ],
-        ], $name, $value, $name, 'tl_dummy_copier');
-
-        $attributes['id'] = $name;
-        $attributes['name'] = $name;
-
-        $widget = new PageTree($attributes);
-
-        return $widget->generate();
-    }
-
-    private function renderFileTreeWidget(string $name, string $label, array $value): string
-    {
-        $attributes = Widget::getAttributesFromDca([
-            'inputType' => 'fileTree',
-            'label' => [$label, ''],
-            'eval' => [
-                'fieldType' => 'checkbox',
-                'filesOnly' => false,
-                'files' => false,
-                'multiple' => true,
-                'tl_class' => 'clr',
-            ],
-        ], $name, $value, $name, 'tl_dummy_copier');
-
-        $attributes['id'] = $name;
-        $attributes['name'] = $name;
-
-        $widget = new FileTree($attributes);
-
-        return $widget->generate();
     }
 
     /**

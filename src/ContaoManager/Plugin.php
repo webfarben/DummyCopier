@@ -6,9 +6,9 @@ namespace Webfarben\DummyCopier\ContaoManager;
 
 use Webfarben\DummyCopier\DummyCopierBundle;
 use Contao\CoreBundle\ContaoCoreBundle;
-use Contao\ManagerPlugin\Bundle\BundleConfig;
+use Contao\ManagerPlugin\Bundle\BundlePluginInterface;
+use Contao\ManagerPlugin\Bundle\Config\BundleConfig;
 use Contao\ManagerPlugin\Bundle\Parser\ParserInterface;
-use Contao\ManagerPlugin\Bundle\Plugin\BundlePluginInterface;
 
 class Plugin implements BundlePluginInterface
 {

@@ -1,0 +1,174 @@
+<?php $this->extend('be_main'); ?>
+
+<?php $this->block('main'); ?>
+  <form action="<?= $this->action; ?>" method="post" style="max-width:900px;">
+    <input type="hidden" name="REQUEST_TOKEN" value="<?= $this->requestToken; ?>">
+    <input type="hidden" name="FORM_SUBMIT" value="tl_dummy_copier">
+
+    <h2>Dummy Copier</h2>
+
+    <style>
+      .dc-tools { margin: 0.25rem 0 0.5rem; display: flex; gap: 0.5rem; }
+      .dc-filter { width: 100%; margin: 0.25rem 0; }
+      .dc-button { padding: 0.15rem 0.45rem; }
+    </style>
+
+    <p>
+      <label>Quell-Seiten (Mehrfachauswahl):<br>
+        <?php if (!empty($this->sourcePagesWidget)): ?>
+          <?= $this->sourcePagesWidget; ?>
+        <?php else: ?>
+          <input class="dc-filter" type="text" data-filter-for="sourcePages" placeholder="Seiten filtern...">
+          <span class="dc-tools">
+            <button class="dc-button" type="button" data-select-all="sourcePages">Alle</button>
+            <button class="dc-button" type="button" data-select-none="sourcePages">Keine</button>
+          </span>
+          <select id="sourcePages" name="sourcePages[]" multiple size="12" style="width:100%;">
+            <?php foreach (($this->pageChoices ?? []) as $id => $label): ?>
+              <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourcePages'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+            <?php endforeach; ?>
+          </select>
+        <?php endif; ?>
+      </label>
+    </p>
+
+    <p>
+      <label>Quell-Module (Mehrfachauswahl):<br>
+        <input class="dc-filter" type="text" data-filter-for="sourceModules" placeholder="Module filtern...">
+        <span class="dc-tools">
+          <button class="dc-button" type="button" data-select-all="sourceModules">Alle</button>
+          <button class="dc-button" type="button" data-select-none="sourceModules">Keine</button>
+        </span>
+        <select id="sourceModules" name="sourceModules[]" multiple size="10" style="width:100%;">
+          <?php foreach (($this->moduleChoices ?? []) as $id => $label): ?>
+            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceModules'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+    </p>
+
+    <p>
+      <label>Quell-Content (optional, Mehrfachauswahl):<br>
+        <input class="dc-filter" type="text" data-filter-for="sourceContent" placeholder="Content filtern...">
+        <span class="dc-tools">
+          <button class="dc-button" type="button" data-select-all="sourceContent">Alle</button>
+          <button class="dc-button" type="button" data-select-none="sourceContent">Keine</button>
+        </span>
+        <select id="sourceContent" name="sourceContent[]" multiple size="10" style="width:100%;">
+          <?php foreach (($this->contentChoices ?? []) as $id => $label): ?>
+            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceContent'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+    </p>
+
+    <p>
+      <label>Quell-Verzeichnisse (optional, Mehrfachauswahl):<br>
+        <?php if (!empty($this->sourceDirectoriesWidget)): ?>
+          <?= $this->sourceDirectoriesWidget; ?>
+        <?php else: ?>
+          <input class="dc-filter" type="text" data-filter-for="sourceDirectories" placeholder="Verzeichnisse filtern...">
+          <span class="dc-tools">
+            <button class="dc-button" type="button" data-select-all="sourceDirectories">Alle</button>
+            <button class="dc-button" type="button" data-select-none="sourceDirectories">Keine</button>
+          </span>
+          <select id="sourceDirectories" name="sourceDirectories[]" multiple size="10" style="width:100%;">
+            <?php foreach (($this->directoryChoices ?? []) as $path => $label): ?>
+              <option value="<?= $this->specialchars((string) $path); ?>" <?= in_array((string) $path, ($this->selected['sourceDirectories'] ?? []), true) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+            <?php endforeach; ?>
+          </select>
+        <?php endif; ?>
+      </label>
+    </p>
+
+    <p>
+      <label>Ziel-Elternseite:<br>
+        <?php if (!empty($this->targetParentPageWidget)): ?>
+          <?= $this->targetParentPageWidget; ?>
+        <?php else: ?>
+          <select name="targetParentPage" required style="width:100%;">
+            <option value="">Bitte waehlen</option>
+            <?php foreach (($this->pageChoices ?? []) as $id => $label): ?>
+              <option value="<?= (int) $id; ?>" <?= ((int) ($this->selected['targetParentPage'] ?? 0) === (int) $id) ? 'selected' : ''; ?>><?= $this->specialchars((string) $label); ?></option>
+            <?php endforeach; ?>
+          </select>
+        <?php endif; ?>
+      </label>
+    </p>
+
+    <p><label>Ziel-Artikel ID (nur fuer einzelne Content-IDs):<br><input type="number" name="targetArticle" min="0" value="<?= (int) ($this->selected['targetArticle'] ?? 0); ?>"></label></p>
+    <p><label>Ziel-Verzeichnis (z. B. files/kunden/kunde-x):<br><input type="text" name="targetDirectory" style="width:100%" value="<?= $this->specialchars((string) ($this->selected['targetDirectory'] ?? '')); ?>"></label></p>
+    <p><label>Praefix fuer Titel/Name/Alias:<br><input type="text" name="namePrefix" placeholder="kunde-x-" value="<?= $this->specialchars((string) ($this->selected['namePrefix'] ?? '')); ?>"></label></p>
+
+    <p><label><input type="checkbox" name="includeContent" value="1" checked> Seiten inkl. Artikel/Content kopieren</label></p>
+    <p><label><input type="checkbox" name="copyModules" value="1" checked> Module kopieren und neu verlinken</label></p>
+    <p><label><input type="checkbox" name="copyDirectories" value="1"> Verzeichnisse kopieren</label></p>
+    <p><label><input type="checkbox" name="dryRun" value="1"> Dry-Run (keine Schreibzugriffe)</label></p>
+
+    <p><button class="tl_submit" type="submit">Ausfuehren</button></p>
+
+    <?php if (isset($this->result) && \is_object($this->result)): ?>
+      <h3>Ergebnis</h3>
+      <pre><?= json_encode([
+          'copiedPages' => $this->result->copiedPages,
+          'copiedModules' => $this->result->copiedModules,
+          'copiedContent' => $this->result->copiedContent,
+          'copiedDirectories' => $this->result->copiedDirectories,
+          'pageMap' => $this->result->pageMap,
+          'moduleMap' => $this->result->moduleMap,
+          'notes' => $this->result->notes,
+      ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES); ?></pre>
+    <?php endif; ?>
+
+    <script>
+      (function () {
+        function byId(id) { return document.getElementById(id); }
+
+        document.querySelectorAll('[data-filter-for]').forEach(function (input) {
+          input.addEventListener('input', function () {
+            var select = byId(input.getAttribute('data-filter-for'));
+
+            if (!select) {
+              return;
+            }
+
+            var query = (input.value || '').toLowerCase();
+            Array.prototype.forEach.call(select.options, function (option) {
+              option.hidden = query !== '' && option.text.toLowerCase().indexOf(query) === -1;
+            });
+          });
+        });
+
+        document.querySelectorAll('[data-select-all]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            var select = byId(button.getAttribute('data-select-all'));
+
+            if (!select) {
+              return;
+            }
+
+            Array.prototype.forEach.call(select.options, function (option) {
+              if (!option.hidden) {
+                option.selected = true;
+              }
+            });
+          });
+        });
+
+        document.querySelectorAll('[data-select-none]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            var select = byId(button.getAttribute('data-select-none'));
+
+            if (!select) {
+              return;
+            }
+
+            Array.prototype.forEach.call(select.options, function (option) {
+              option.selected = false;
+            });
+          });
+        });
+      })();
+    </script>
+  </form>
+<?php $this->endblock(); ?>

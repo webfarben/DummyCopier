@@ -149,11 +149,24 @@ final class DummyCopier
 
             $newArticleId = $this->insertRow('tl_article', $articleRow);
 
-            $contentIds = $this->connection->fetchFirstColumn('SELECT id FROM tl_content WHERE ptable = ? AND pid = ? ORDER BY sorting', ['tl_article', (int) $articleId]);
+            $this->copyArticleContentTree((int) $articleId, $newArticleId, $moduleMap, $result);
+        }
+    }
 
-            foreach ($contentIds as $contentId) {
-                $this->copySingleContent((int) $contentId, $newArticleId, $moduleMap, $result);
-            }
+    /**
+     * Copies top-level article content and all nested child elements recursively.
+     *
+     * @param array<int,int> $moduleMap
+     */
+    private function copyArticleContentTree(int $sourceArticleId, int $targetArticleId, array $moduleMap, DummyCopyResult $result): void
+    {
+        $contentIds = $this->connection->fetchFirstColumn(
+            'SELECT id FROM tl_content WHERE ptable = ? AND pid = ? ORDER BY sorting',
+            ['tl_article', $sourceArticleId]
+        );
+
+        foreach ($contentIds as $contentId) {
+            $this->copyContentRecursive((int) $contentId, 'tl_article', $targetArticleId, $moduleMap, $result);
         }
     }
 
@@ -162,18 +175,28 @@ final class DummyCopier
      */
     private function copySingleContent(int $sourceContentId, int $targetArticleId, array $moduleMap, DummyCopyResult $result): void
     {
+        $this->copyContentRecursive($sourceContentId, 'tl_article', $targetArticleId, $moduleMap, $result);
+    }
+
+    /**
+     * Recursively copies one content element and its children.
+     *
+     * @param array<int,int> $moduleMap
+     */
+    private function copyContentRecursive(int $sourceContentId, string $targetPtable, int $targetPid, array $moduleMap, DummyCopyResult $result): int
+    {
         $contentRow = $this->fetchRow('tl_content', $sourceContentId);
 
         if ($contentRow === null) {
             $result->addNote(sprintf('Content %d nicht gefunden, wurde uebersprungen.', $sourceContentId));
-            return;
+            return 0;
         }
 
         unset($contentRow['id']);
-        $contentRow['pid'] = $targetArticleId;
-        $contentRow['ptable'] = 'tl_article';
+        $contentRow['pid'] = $targetPid;
+        $contentRow['ptable'] = $targetPtable;
         $contentRow['tstamp'] = time();
-        $contentRow['sorting'] = $this->nextSorting('tl_content', 'pid', $targetArticleId, 'ptable', 'tl_article');
+        $contentRow['sorting'] = $this->nextSorting('tl_content', 'pid', $targetPid, 'ptable', $targetPtable);
 
         if (($contentRow['type'] ?? '') === 'module') {
             $oldModule = (int) ($contentRow['module'] ?? 0);
@@ -190,6 +213,17 @@ final class DummyCopier
         if (isset($contentRow['jumpTo'], $result->pageMap[(int) $contentRow['jumpTo']])) {
             $this->connection->update('tl_content', ['jumpTo' => $result->pageMap[(int) $contentRow['jumpTo']]], ['id' => $newContentId]);
         }
+
+        $childIds = $this->connection->fetchFirstColumn(
+            'SELECT id FROM tl_content WHERE ptable = ? AND pid = ? ORDER BY sorting',
+            ['tl_content', $sourceContentId]
+        );
+
+        foreach ($childIds as $childId) {
+            $this->copyContentRecursive((int) $childId, 'tl_content', $newContentId, $moduleMap, $result);
+        }
+
+        return $newContentId;
     }
 
     private function rewriteReferences(DummyCopyResult $result): void
@@ -342,10 +376,55 @@ final class DummyCopier
         }
 
         $articlePlaceholders = implode(',', array_fill(0, \count($articleIds), '?'));
-
-        return $count + (int) $this->connection->fetchOne(
-            sprintf('SELECT COUNT(*) FROM tl_content WHERE ptable = ? AND pid IN (%s)', $articlePlaceholders),
+        $rootContentIds = $this->connection->fetchFirstColumn(
+            sprintf('SELECT id FROM tl_content WHERE ptable = ? AND pid IN (%s)', $articlePlaceholders),
             array_merge(['tl_article'], array_map('intval', $articleIds))
         );
+
+        if ($rootContentIds === []) {
+            return $count;
+        }
+
+        return $count + $this->countContentTree(array_map('intval', $rootContentIds));
+    }
+
+    /**
+     * Counts content roots and all nested descendants.
+     *
+     * @param array<int,int> $rootIds
+     */
+    private function countContentTree(array $rootIds): int
+    {
+        if ($rootIds === []) {
+            return 0;
+        }
+
+        $seen = [];
+        $queue = array_values(array_filter($rootIds, static fn (int $id): bool => $id > 0));
+
+        while ($queue !== []) {
+            $currentBatch = [];
+
+            foreach ($queue as $id) {
+                if (!isset($seen[$id])) {
+                    $seen[$id] = true;
+                    $currentBatch[] = $id;
+                }
+            }
+
+            if ($currentBatch === []) {
+                break;
+            }
+
+            $placeholders = implode(',', array_fill(0, \count($currentBatch), '?'));
+            $children = $this->connection->fetchFirstColumn(
+                sprintf('SELECT id FROM tl_content WHERE ptable = ? AND pid IN (%s)', $placeholders),
+                array_merge(['tl_content'], $currentBatch)
+            );
+
+            $queue = array_map('intval', $children);
+        }
+
+        return \count($seen);
     }
 }

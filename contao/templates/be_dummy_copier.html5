@@ -8,13 +8,17 @@
       .dc-tools { margin: 0.25rem 0 0.5rem; display: flex; gap: 0.5rem; }
       .dc-filter { width: 100%; margin: 0.25rem 0; }
       .dc-button { padding: 0.15rem 0.45rem; }
+      .dc-section { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px; }
+      .dc-section h3 { margin: 0 0 0.75rem; font-size: 1rem; font-weight: bold; }
+      .dc-hint { color: #666; font-size: 0.85rem; margin: 0.25rem 0 0.75rem; }
     </style>
 
-    <p>
-      <label>Quell-Seiten (Mehrfachauswahl):<br>
-        <?php if (!empty($this->sourcePagesWidget)): ?>
-          <?= $this->sourcePagesWidget; ?>
-        <?php else: ?>
+    <!-- Abschnitt 1: Quell-Seiten -->
+    <div class="dc-section">
+      <h3>1. Quell-Seiten auswaehlen</h3>
+      <p class="dc-hint">Alle Artikel und Inhaltselemente der gewaehlten Seiten werden automatisch mitkopiert (sofern Option "inkl. Content" aktiv ist).</p>
+      <p>
+        <label>Quell-Seiten (Mehrfachauswahl):<br>
           <input class="dc-filter" type="text" data-filter-for="sourcePages" placeholder="Seiten filtern...">
           <span class="dc-tools">
             <button class="dc-button" type="button" data-select-all="sourcePages">Alle</button>
@@ -25,96 +29,97 @@
               <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourcePages'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
           </select>
-        <?php endif; ?>
-      </label>
-    </p>
+        </label>
+      </p>
+    </div>
 
-    <p>
-      <label>Quell-Module (Mehrfachauswahl):<br>
-        <input class="dc-filter" type="text" data-filter-for="sourceModules" placeholder="Module filtern...">
-        <span class="dc-tools">
-          <button class="dc-button" type="button" data-select-all="sourceModules">Alle</button>
-          <button class="dc-button" type="button" data-select-none="sourceModules">Keine</button>
-        </span>
-        <select id="sourceModules" name="sourceModules[]" multiple size="10" style="width:100%;">
-          <?php foreach (($this->moduleChoices ?? []) as $id => $label): ?>
-            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceModules'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
-          <?php endforeach; ?>
-        </select>
-      </label>
-    </p>
+    <!-- Abschnitt 2: Quell-Module -->
+    <div class="dc-section">
+      <h3>2. Quell-Module auswaehlen</h3>
+      <p class="dc-hint">Ausgewaehlte Module werden kopiert; Referenzen in den kopierten Seiten werden automatisch auf die neuen Module umgebogen.</p>
+      <p>
+        <label>Module (Mehrfachauswahl):<br>
+          <input class="dc-filter" type="text" data-filter-for="sourceModules" placeholder="Module filtern...">
+          <span class="dc-tools">
+            <button class="dc-button" type="button" data-select-all="sourceModules">Alle</button>
+            <button class="dc-button" type="button" data-select-none="sourceModules">Keine</button>
+          </span>
+          <select id="sourceModules" name="sourceModules[]" multiple size="10" style="width:100%;">
+            <?php foreach (($this->moduleChoices ?? []) as $id => $label): ?>
+              <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceModules'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+      </p>
+    </div>
 
-    <p>
-      <label>Quell-Content (optional, Mehrfachauswahl):<br>
-        <input class="dc-filter" type="text" data-filter-for="sourceContent" placeholder="Content filtern...">
-        <span class="dc-tools">
-          <button class="dc-button" type="button" data-select-all="sourceContent">Alle</button>
-          <button class="dc-button" type="button" data-select-none="sourceContent">Keine</button>
-        </span>
-        <select id="sourceContent" name="sourceContent[]" multiple size="10" style="width:100%;">
-          <?php foreach (($this->contentChoices ?? []) as $id => $label): ?>
-            <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceContent'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
-          <?php endforeach; ?>
-        </select>
-      </label>
-    </p>
-
-    <p>
-      <label>Quell-Verzeichnisse (optional, Mehrfachauswahl):<br>
-        <?php if (!empty($this->sourceDirectoriesWidget)): ?>
-          <?= $this->sourceDirectoriesWidget; ?>
-        <?php else: ?>
+    <!-- Abschnitt 3: Quell-Verzeichnisse -->
+    <div class="dc-section">
+      <h3>3. Quell-Verzeichnisse auswaehlen (optional)</h3>
+      <p class="dc-hint">Optionale Dateiverzeichnisse, die gespiegelt werden sollen.</p>
+      <p>
+        <label>Verzeichnisse (Mehrfachauswahl):<br>
           <input class="dc-filter" type="text" data-filter-for="sourceDirectories" placeholder="Verzeichnisse filtern...">
           <span class="dc-tools">
             <button class="dc-button" type="button" data-select-all="sourceDirectories">Alle</button>
             <button class="dc-button" type="button" data-select-none="sourceDirectories">Keine</button>
           </span>
-          <select id="sourceDirectories" name="sourceDirectories[]" multiple size="10" style="width:100%;">
+          <select id="sourceDirectories" name="sourceDirectories[]" multiple size="8" style="width:100%;">
             <?php foreach (($this->directoryChoices ?? []) as $path => $label): ?>
               <option value="<?= htmlspecialchars((string) $path, ENT_QUOTES, 'UTF-8'); ?>" <?= in_array((string) $path, ($this->selected['sourceDirectories'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
           </select>
-        <?php endif; ?>
-      </label>
-    </p>
+        </label>
+      </p>
+    </div>
 
-    <p>
-      <label>Ziel-Elternseite:<br>
-        <?php if (!empty($this->targetParentPageWidget)): ?>
-          <?= $this->targetParentPageWidget; ?>
-        <?php else: ?>
+    <!-- Abschnitt 4: Kopieroptionen -->
+    <div class="dc-section">
+      <h3>4. Kopieroptionen</h3>
+      <p><label><input type="checkbox" name="includeContent" value="1" <?= ($this->selected['includeContent'] ?? true) ? 'checked' : ''; ?>> Artikel &amp; Inhaltselemente der Seiten mitkopieren</label></p>
+      <p><label><input type="checkbox" name="copyModules" value="1" <?= ($this->selected['copyModules'] ?? true) ? 'checked' : ''; ?>> Module kopieren und in den kopierten Seiten neu verlinken</label></p>
+      <p><label><input type="checkbox" name="copyDirectories" value="1" <?= ($this->selected['copyDirectories'] ?? false) ? 'checked' : ''; ?>> Ausgewaehlte Verzeichnisse in Ziel-Verzeichnis kopieren</label></p>
+      <p><label><input type="checkbox" name="dryRun" value="1" <?= ($this->selected['dryRun'] ?? false) ? 'checked' : ''; ?>> Dry-Run (nur Vorschau, keine Schreibzugriffe)</label></p>
+    </div>
+
+    <!-- Abschnitt 5: Ziel -->
+    <div class="dc-section">
+      <h3>5. Ziel &amp; Benennung</h3>
+      <p>
+        <label>Ziel-Elternseite (Pflichtfeld):<br>
           <select name="targetParentPage" required style="width:100%;">
             <option value="">Bitte waehlen</option>
             <?php foreach (($this->pageChoices ?? []) as $id => $label): ?>
               <option value="<?= (int) $id; ?>" <?= ((int) ($this->selected['targetParentPage'] ?? 0) === (int) $id) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
           </select>
-        <?php endif; ?>
-      </label>
-    </p>
-
-    <p><label>Ziel-Artikel ID (nur fuer einzelne Content-IDs):<br><input type="number" name="targetArticle" min="0" value="<?= (int) ($this->selected['targetArticle'] ?? 0); ?>"></label></p>
-    <p><label>Ziel-Verzeichnis (z. B. files/kunden/kunde-x):<br><input type="text" name="targetDirectory" style="width:100%" value="<?= htmlspecialchars((string) ($this->selected['targetDirectory'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></label></p>
-    <p><label>Praefix fuer Titel/Name/Alias:<br><input type="text" name="namePrefix" placeholder="kunde-x-" value="<?= htmlspecialchars((string) ($this->selected['namePrefix'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></label></p>
-
-    <p><label><input type="checkbox" name="includeContent" value="1" checked> Seiten inkl. Artikel/Content kopieren</label></p>
-    <p><label><input type="checkbox" name="copyModules" value="1" checked> Module kopieren und neu verlinken</label></p>
-    <p><label><input type="checkbox" name="copyDirectories" value="1"> Verzeichnisse kopieren</label></p>
-    <p><label><input type="checkbox" name="dryRun" value="1"> Dry-Run (keine Schreibzugriffe)</label></p>
+        </label>
+      </p>
+      <p>
+        <label>Ziel-Verzeichnis fuer Dateien (z. B. files/kunden/kunde-x):<br>
+          <input type="text" name="targetDirectory" style="width:100%" placeholder="files/kunden/mein-kunde" value="<?= htmlspecialchars((string) ($this->selected['targetDirectory'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+        </label>
+      </p>
+      <p>
+        <label>Praefix fuer Titel / Name / Alias der Kopien:<br>
+          <input type="text" name="namePrefix" style="width:100%" placeholder="z. B. kunde-x-" value="<?= htmlspecialchars((string) ($this->selected['namePrefix'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+        </label>
+      </p>
+    </div>
 
     <p><button class="tl_submit" type="submit">Ausfuehren</button></p>
 
     <?php if (isset($this->result) && \is_object($this->result)): ?>
       <h3>Ergebnis</h3>
-      <pre><?= json_encode([
-          'copiedPages' => $this->result->copiedPages,
-          'copiedModules' => $this->result->copiedModules,
-          'copiedContent' => $this->result->copiedContent,
+      <pre><?= htmlspecialchars(json_encode([
+          'copiedPages'       => $this->result->copiedPages,
+          'copiedModules'     => $this->result->copiedModules,
+          'copiedContent'     => $this->result->copiedContent,
           'copiedDirectories' => $this->result->copiedDirectories,
-          'pageMap' => $this->result->pageMap,
-          'moduleMap' => $this->result->moduleMap,
-          'notes' => $this->result->notes,
-      ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES); ?></pre>
+          'pageMap'           => $this->result->pageMap,
+          'moduleMap'         => $this->result->moduleMap,
+          'notes'             => $this->result->notes,
+      ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?></pre>
     <?php endif; ?>
 
     <script>
@@ -124,11 +129,7 @@
         document.querySelectorAll('[data-filter-for]').forEach(function (input) {
           input.addEventListener('input', function () {
             var select = byId(input.getAttribute('data-filter-for'));
-
-            if (!select) {
-              return;
-            }
-
+            if (!select) { return; }
             var query = (input.value || '').toLowerCase();
             Array.prototype.forEach.call(select.options, function (option) {
               option.hidden = query !== '' && option.text.toLowerCase().indexOf(query) === -1;
@@ -139,15 +140,9 @@
         document.querySelectorAll('[data-select-all]').forEach(function (button) {
           button.addEventListener('click', function () {
             var select = byId(button.getAttribute('data-select-all'));
-
-            if (!select) {
-              return;
-            }
-
+            if (!select) { return; }
             Array.prototype.forEach.call(select.options, function (option) {
-              if (!option.hidden) {
-                option.selected = true;
-              }
+              if (!option.hidden) { option.selected = true; }
             });
           });
         });
@@ -155,11 +150,7 @@
         document.querySelectorAll('[data-select-none]').forEach(function (button) {
           button.addEventListener('click', function () {
             var select = byId(button.getAttribute('data-select-none'));
-
-            if (!select) {
-              return;
-            }
-
+            if (!select) { return; }
             Array.prototype.forEach.call(select.options, function (option) {
               option.selected = false;
             });

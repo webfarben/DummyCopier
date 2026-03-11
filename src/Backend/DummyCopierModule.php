@@ -28,36 +28,35 @@ class DummyCopierModule extends BackendModule
         $this->Template->requestToken = $this->getCsrfToken();
         $this->Template->pageChoices = $this->getPageChoices($connection);
         $this->Template->moduleChoices = $this->getModuleChoices($connection);
-        $this->Template->contentChoices = $this->getContentChoices($connection);
         $this->Template->directoryChoices = $this->getDirectoryChoices();
-        $this->Template->sourcePagesWidget = '';
-        $this->Template->targetParentPageWidget = '';
-        $this->Template->sourceDirectoriesWidget = '';
 
         $targetParentPageId = $this->parseSingleIdInput(Input::postRaw('targetParentPage'));
+        $isPost = Input::post('FORM_SUBMIT') === 'tl_dummy_copier';
 
         $this->Template->selected = [
             'sourcePages' => $this->parseIdInput(Input::postRaw('sourcePages')),
             'sourceModules' => $this->parseIdInput(Input::postRaw('sourceModules')),
-            'sourceContent' => $this->parseIdInput(Input::postRaw('sourceContent')),
             'sourceDirectories' => $this->parsePathInput(Input::postRaw('sourceDirectories')),
             'targetParentPage' => $targetParentPageId,
-            'targetArticle' => (int) Input::post('targetArticle'),
             'targetDirectory' => trim((string) Input::post('targetDirectory')),
             'namePrefix' => trim((string) Input::post('namePrefix')),
+            'includeContent'    => !$isPost || (bool) Input::post('includeContent'),
+            'copyModules'       => !$isPost || (bool) Input::post('copyModules'),
+            'copyDirectories'   => $isPost && (bool) Input::post('copyDirectories'),
+            'dryRun'            => $isPost && (bool) Input::post('dryRun'),
         ];
 
-        if (Input::post('FORM_SUBMIT') !== 'tl_dummy_copier') {
+        if (!$isPost) {
             return;
         }
 
         $options = new DummyCopyOptions(
             $this->parseIdInput(Input::postRaw('sourcePages')),
             $this->parseIdInput(Input::postRaw('sourceModules')),
-            $this->parseIdInput(Input::postRaw('sourceContent')),
+            [],
             $this->parsePathInput(Input::postRaw('sourceDirectories')),
             $targetParentPageId,
-            (int) Input::post('targetArticle'),
+            0,
             trim((string) Input::post('targetDirectory')),
             trim((string) Input::post('namePrefix')),
             (bool) Input::post('includeContent'),
@@ -225,7 +224,12 @@ class DummyCopierModule extends BackendModule
      */
     private function getModuleChoices(Connection $connection): array
     {
-        $rows = $connection->fetchAllAssociative('SELECT id, name, type FROM tl_module ORDER BY id');
+        $rows = $connection->fetchAllAssociative(
+            'SELECT m.id, m.name, m.type, t.name AS theme_name
+             FROM tl_module m
+             LEFT JOIN tl_theme t ON t.id = m.pid
+             ORDER BY t.name, m.type, m.name'
+        );
         $choices = [];
 
         foreach ($rows as $row) {
@@ -237,33 +241,9 @@ class DummyCopierModule extends BackendModule
 
             $name = trim((string) ($row['name'] ?? 'Modul ' . $id));
             $type = trim((string) ($row['type'] ?? ''));
-            $label = $type !== '' ? sprintf('%s (%s)', $name, $type) : $name;
+            $theme = trim((string) ($row['theme_name'] ?? ''));
+            $label = $theme !== '' ? sprintf('[%s] %s (%s)', $theme, $name, $type) : sprintf('%s (%s)', $name, $type);
             $choices[$id] = sprintf('%s [ID %d]', $label, $id);
-        }
-
-        return $choices;
-    }
-
-    /**
-     * @return array<int,string>
-     */
-    private function getContentChoices(Connection $connection): array
-    {
-        $rows = $connection->fetchAllAssociative('SELECT id, type, pid, headline FROM tl_content ORDER BY id');
-        $choices = [];
-
-        foreach ($rows as $row) {
-            $id = (int) ($row['id'] ?? 0);
-
-            if ($id < 1) {
-                continue;
-            }
-
-            $type = trim((string) ($row['type'] ?? 'content'));
-            $pid = (int) ($row['pid'] ?? 0);
-            $headline = $this->normalizeHeadline($row['headline'] ?? null);
-            $label = $headline !== '' ? sprintf('%s: %s', $type, $headline) : $type;
-            $choices[$id] = sprintf('%s [ID %d, Artikel %d]', $label, $id, $pid);
         }
 
         return $choices;

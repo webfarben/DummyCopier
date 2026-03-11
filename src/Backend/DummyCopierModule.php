@@ -25,7 +25,7 @@ class DummyCopierModule extends BackendModule
         $connection = System::getContainer()->get('database_connection');
 
         $this->Template->action = Environment::get('request');
-        $this->Template->requestToken = \defined('REQUEST_TOKEN') ? REQUEST_TOKEN : '';
+        $this->Template->requestToken = $this->getCsrfToken();
         $this->Template->pageChoices = $this->getPageChoices($connection);
         $this->Template->moduleChoices = $this->getModuleChoices($connection);
         $this->Template->contentChoices = $this->getContentChoices($connection);
@@ -137,6 +137,26 @@ class DummyCopierModule extends BackendModule
         $ids = $this->parseIdInput($input);
 
         return $ids[0] ?? 0;
+    }
+
+    private function getCsrfToken(): string
+    {
+        $container = System::getContainer();
+
+        // Contao 5: use Symfony CSRF token manager
+        if ($container->has('contao.csrf.token_manager')) {
+            return $container
+                ->get('contao.csrf.token_manager')
+                ->getToken((string) $container->getParameter('contao.csrf_token_name'))
+                ->getValue();
+        }
+
+        // Contao 4 fallback
+        if (\defined('REQUEST_TOKEN')) {
+            return REQUEST_TOKEN;
+        }
+
+        return '';
     }
 
     /**

@@ -16,6 +16,7 @@ use Contao\StringUtil;
 use Contao\System;
 use Contao\Widget;
 use Doctrine\DBAL\Connection;
+use Symfony\Component\Filesystem\Filesystem;
 
 class DummyCopierModule extends BackendModule
 {
@@ -23,7 +24,8 @@ class DummyCopierModule extends BackendModule
 
     protected function compile(): void
     {
-        $connection = System::getContainer()->get(Connection::class);
+        /** @var Connection $connection */
+        $connection = System::getContainer()->get('database_connection');
 
         $this->Template->action = Environment::get('request');
         $this->Template->requestToken = \defined('REQUEST_TOKEN') ? REQUEST_TOKEN : '';
@@ -69,8 +71,11 @@ class DummyCopierModule extends BackendModule
         );
 
         try {
-            /** @var DummyCopier $copier */
-            $copier = System::getContainer()->get(DummyCopier::class);
+            $copier = new DummyCopier(
+                $connection,
+                new Filesystem(),
+                (string) System::getContainer()->getParameter('kernel.project_dir')
+            );
             $result = $copier->execute($options);
 
             Message::addConfirmation(sprintf(

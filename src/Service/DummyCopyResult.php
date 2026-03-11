@@ -17,6 +17,9 @@ final class DummyCopyResult
     /** @var array<int,int> */
     public array $moduleMap = [];
 
+    /** @var array<int,int> */
+    public array $contentMap = [];
+
     /** @var array<string> */
     public array $notes = [];
 

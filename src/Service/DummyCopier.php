@@ -160,13 +160,14 @@ final class DummyCopier
      */
     private function copyArticleContentTree(int $sourceArticleId, int $targetArticleId, array $moduleMap, DummyCopyResult $result): void
     {
+        $visited = [];
         $contentIds = $this->connection->fetchFirstColumn(
             'SELECT id FROM tl_content WHERE ptable = ? AND pid = ? ORDER BY sorting',
             ['tl_article', $sourceArticleId]
         );
 
         foreach ($contentIds as $contentId) {
-            $this->copyContentRecursive((int) $contentId, 'tl_article', $targetArticleId, $moduleMap, $result);
+            $this->copyContentRecursive((int) $contentId, 'tl_article', $targetArticleId, $moduleMap, $result, $visited);
         }
     }
 
@@ -175,7 +176,8 @@ final class DummyCopier
      */
     private function copySingleContent(int $sourceContentId, int $targetArticleId, array $moduleMap, DummyCopyResult $result): void
     {
-        $this->copyContentRecursive($sourceContentId, 'tl_article', $targetArticleId, $moduleMap, $result);
+        $visited = [];
+        $this->copyContentRecursive($sourceContentId, 'tl_article', $targetArticleId, $moduleMap, $result, $visited);
     }
 
     /**
@@ -183,8 +185,13 @@ final class DummyCopier
      *
      * @param array<int,int> $moduleMap
      */
-    private function copyContentRecursive(int $sourceContentId, string $targetPtable, int $targetPid, array $moduleMap, DummyCopyResult $result): int
+    private function copyContentRecursive(int $sourceContentId, string $targetPtable, int $targetPid, array $moduleMap, DummyCopyResult $result, array &$visited): int
     {
+        if (isset($visited[$sourceContentId])) {
+            return 0;
+        }
+
+        $visited[$sourceContentId] = true;
         $contentRow = $this->fetchRow('tl_content', $sourceContentId);
 
         if ($contentRow === null) {
@@ -207,6 +214,7 @@ final class DummyCopier
         }
 
         $newContentId = $this->insertRow('tl_content', $contentRow);
+        $result->contentMap[$sourceContentId] = $newContentId;
         $result->copiedContent++;
         $result->copiedContentIds[] = $newContentId;
 
@@ -220,7 +228,7 @@ final class DummyCopier
         );
 
         foreach ($childIds as $childId) {
-            $this->copyContentRecursive((int) $childId, 'tl_content', $newContentId, $moduleMap, $result);
+            $this->copyContentRecursive((int) $childId, 'tl_content', $newContentId, $moduleMap, $result, $visited);
         }
 
         return $newContentId;
@@ -258,6 +266,23 @@ final class DummyCopier
             $this->connection->executeStatement(
                 sprintf('UPDATE tl_content SET module = ? WHERE type = ? AND module = ? AND id IN (%s)', $placeholders),
                 $params
+            );
+        }
+
+        foreach ($result->contentMap as $oldContentId => $newContentId) {
+            $sourceAliasTarget = (int) $this->connection->fetchOne(
+                'SELECT cteAlias FROM tl_content WHERE id = ? AND type = ?',
+                [$oldContentId, 'alias']
+            );
+
+            if ($sourceAliasTarget < 1 || !isset($result->contentMap[$sourceAliasTarget])) {
+                continue;
+            }
+
+            $this->connection->update(
+                'tl_content',
+                ['cteAlias' => $result->contentMap[$sourceAliasTarget]],
+                ['id' => $newContentId, 'type' => 'alias']
             );
         }
     }
@@ -362,7 +387,7 @@ final class DummyCopier
 
     private function estimateContentCount(DummyCopyOptions $options): int
     {
-        $count = \count($options->sourceContentIds);
+        $count = $this->countContentTree(array_map('intval', $options->sourceContentIds));
 
         if (!$options->includeContent || $options->sourcePageIds === []) {
             return $count;

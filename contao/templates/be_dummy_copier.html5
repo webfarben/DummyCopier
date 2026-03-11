@@ -1,7 +1,4 @@
-<?php $this->extend('be_main'); ?>
-
-<?php $this->block('main'); ?>
-  <form action="<?= $this->action; ?>" method="post" style="max-width:900px;">
+<form action="<?= $this->action; ?>" method="post" style="max-width:900px;">
     <input type="hidden" name="REQUEST_TOKEN" value="<?= $this->requestToken; ?>">
     <input type="hidden" name="FORM_SUBMIT" value="tl_dummy_copier">
 
@@ -170,5 +167,4 @@
         });
       })();
     </script>
-  </form>
-<?php $this->endblock(); ?>
+</form>

@@ -11,10 +11,10 @@
     "migration",
     "cloner"
   ],
-  "homepage": "https://git.file-archive.de/webfarben/DummyCopier",
+  "homepage": "https://github.com/webfarben/DummyCopier",
   "support": {
-    "source": "https://git.file-archive.de/webfarben/DummyCopier",
-    "issues": "https://git.file-archive.de/webfarben/DummyCopier/issues"
+    "source": "https://github.com/webfarben/DummyCopier",
+    "issues": "https://github.com/webfarben/DummyCopier/issues"
   },
   "authors": [
     {

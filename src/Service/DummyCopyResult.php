@@ -30,6 +30,12 @@ final class DummyCopyResult
     /** @var array<int,int> */
     public array $calendarMap = [];
 
+    /** @var array<int,int> */
+    public array $newsItemMap = [];
+
+    /** @var array<int,int> */
+    public array $eventMap = [];
+
     /** @var array<string> */
     public array $notes = [];
 

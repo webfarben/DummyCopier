@@ -327,10 +327,70 @@ final class DummyCopier
                 $updates['cal_calendar'] = $this->remapSerializedIds((string) ($row['cal_calendar'] ?? ''), $result->calendarMap);
             }
 
+            if (array_key_exists('news_readerModule', $row)) {
+                $oldReaderModuleId = (int) ($row['news_readerModule'] ?? 0);
+
+                if ($oldReaderModuleId > 0 && isset($result->moduleMap[$oldReaderModuleId])) {
+                    $updates['news_readerModule'] = $result->moduleMap[$oldReaderModuleId];
+                }
+            }
+
+            if (array_key_exists('cal_readerModule', $row)) {
+                $oldReaderModuleId = (int) ($row['cal_readerModule'] ?? 0);
+
+                if ($oldReaderModuleId > 0 && isset($result->moduleMap[$oldReaderModuleId])) {
+                    $updates['cal_readerModule'] = $result->moduleMap[$oldReaderModuleId];
+                }
+            }
+
             if ($updates !== []) {
                 $updates['tstamp'] = time();
                 $this->connection->update('tl_module', $updates, ['id' => $newModuleId]);
             }
+        }
+
+        $this->rewriteNewsItemReferences($result);
+    }
+
+    private function rewriteNewsItemReferences(DummyCopyResult $result): void
+    {
+        if ($result->newsItemMap === []) {
+            return;
+        }
+
+        foreach ($result->newsItemMap as $oldNewsId => $newNewsId) {
+            $sourceRow = $this->fetchRow('tl_news', $oldNewsId);
+
+            if ($sourceRow === null || !array_key_exists('related', $sourceRow)) {
+                continue;
+            }
+
+            $related = StringUtil::deserialize((string) ($sourceRow['related'] ?? ''), true);
+
+            if ($related === []) {
+                continue;
+            }
+
+            $mappedRelated = [];
+
+            foreach ($related as $relatedIdValue) {
+                $relatedId = (int) $relatedIdValue;
+
+                if ($relatedId < 1) {
+                    continue;
+                }
+
+                $mappedRelated[] = (string) ($result->newsItemMap[$relatedId] ?? $relatedId);
+            }
+
+            $this->connection->update(
+                'tl_news',
+                [
+                    'related' => StringUtil::serialize($mappedRelated),
+                    'tstamp' => time(),
+                ],
+                ['id' => $newNewsId]
+            );
         }
     }
 
@@ -391,7 +451,8 @@ final class DummyCopier
                     $newsRow['jumpTo'] = $result->pageMap[(int) $newsRow['jumpTo']];
                 }
 
-                $this->insertRow('tl_news', $newsRow);
+                $newNewsId = $this->insertRow('tl_news', $newsRow);
+                $result->newsItemMap[(int) $newsId] = $newNewsId;
                 $result->copiedNewsItems++;
             }
         }
@@ -456,7 +517,8 @@ final class DummyCopier
                     $eventRow['jumpTo'] = $result->pageMap[(int) $eventRow['jumpTo']];
                 }
 
-                $this->insertRow('tl_calendar_events', $eventRow);
+                $newEventId = $this->insertRow('tl_calendar_events', $eventRow);
+                $result->eventMap[(int) $eventId] = $newEventId;
                 $result->copiedEvents++;
             }
         }

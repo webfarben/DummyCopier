@@ -55,7 +55,47 @@
 
     <!-- Abschnitt 3: Quell-Verzeichnisse -->
     <div class="dc-section">
-      <h3>3. Quell-Verzeichnisse auswaehlen (optional)</h3>
+      <h3>3. Newsarchive auswaehlen (optional)</h3>
+      <p class="dc-hint">Ausgewaehlte Newsarchive und ihre Newsbeitraege werden kopiert.</p>
+      <p>
+        <label>Newsarchive (Mehrfachauswahl):<br>
+          <input class="dc-filter" type="text" data-filter-for="sourceNewsArchives" placeholder="Newsarchive filtern...">
+          <span class="dc-tools">
+            <button class="dc-button" type="button" data-select-all="sourceNewsArchives">Alle</button>
+            <button class="dc-button" type="button" data-select-none="sourceNewsArchives">Keine</button>
+          </span>
+          <select id="sourceNewsArchives" name="sourceNewsArchives[]" multiple size="8" style="width:100%;">
+            <?php foreach (($this->newsArchiveChoices ?? []) as $id => $label): ?>
+              <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceNewsArchives'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+      </p>
+    </div>
+
+    <!-- Abschnitt 4: Kalender -->
+    <div class="dc-section">
+      <h3>4. Kalender auswaehlen (optional)</h3>
+      <p class="dc-hint">Ausgewaehlte Kalender und ihre Events werden kopiert.</p>
+      <p>
+        <label>Kalender (Mehrfachauswahl):<br>
+          <input class="dc-filter" type="text" data-filter-for="sourceCalendars" placeholder="Kalender filtern...">
+          <span class="dc-tools">
+            <button class="dc-button" type="button" data-select-all="sourceCalendars">Alle</button>
+            <button class="dc-button" type="button" data-select-none="sourceCalendars">Keine</button>
+          </span>
+          <select id="sourceCalendars" name="sourceCalendars[]" multiple size="8" style="width:100%;">
+            <?php foreach (($this->calendarChoices ?? []) as $id => $label): ?>
+              <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourceCalendars'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+      </p>
+    </div>
+
+    <!-- Abschnitt 5: Quell-Verzeichnisse -->
+    <div class="dc-section">
+      <h3>5. Quell-Verzeichnisse auswaehlen (optional)</h3>
       <p class="dc-hint">Optionale Dateiverzeichnisse, die gespiegelt werden sollen.</p>
       <p>
         <label>Verzeichnisse (Mehrfachauswahl):<br>
@@ -75,7 +115,7 @@
 
     <!-- Abschnitt 4: Kopieroptionen -->
     <div class="dc-section">
-      <h3>4. Kopieroptionen</h3>
+      <h3>6. Kopieroptionen</h3>
       <p><label><input type="checkbox" name="includeContent" value="1" <?= ($this->selected['includeContent'] ?? true) ? 'checked' : ''; ?>> Artikel &amp; Inhaltselemente der Seiten mitkopieren</label></p>
       <p><label><input type="checkbox" name="copyModules" value="1" <?= ($this->selected['copyModules'] ?? true) ? 'checked' : ''; ?>> Module kopieren und in den kopierten Seiten neu verlinken</label></p>
       <p><label><input type="checkbox" name="copyDirectories" value="1" <?= ($this->selected['copyDirectories'] ?? false) ? 'checked' : ''; ?>> Ausgewaehlte Verzeichnisse in Ziel-Verzeichnis kopieren</label></p>
@@ -84,7 +124,7 @@
 
     <!-- Abschnitt 5: Ziel -->
     <div class="dc-section">
-      <h3>5. Ziel &amp; Benennung</h3>
+      <h3>7. Ziel &amp; Benennung</h3>
       <p>
         <label>Ziel-Elternseite (Pflichtfeld):<br>
           <select name="targetParentPage" required style="width:100%;">
@@ -115,9 +155,15 @@
           'copiedPages'       => $this->result->copiedPages,
           'copiedModules'     => $this->result->copiedModules,
           'copiedContent'     => $this->result->copiedContent,
+          'copiedNewsArchives'=> $this->result->copiedNewsArchives,
+          'copiedNewsItems'   => $this->result->copiedNewsItems,
+          'copiedCalendars'   => $this->result->copiedCalendars,
+          'copiedEvents'      => $this->result->copiedEvents,
           'copiedDirectories' => $this->result->copiedDirectories,
           'pageMap'           => $this->result->pageMap,
           'moduleMap'         => $this->result->moduleMap,
+          'newsArchiveMap'    => $this->result->newsArchiveMap,
+          'calendarMap'       => $this->result->calendarMap,
           'notes'             => $this->result->notes,
       ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?></pre>
     <?php endif; ?>

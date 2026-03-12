@@ -28,6 +28,8 @@ class DummyCopierModule extends BackendModule
         $this->Template->requestToken = $this->getCsrfToken();
         $this->Template->pageChoices = $this->getPageChoices($connection);
         $this->Template->moduleChoices = $this->getModuleChoices($connection);
+        $this->Template->newsArchiveChoices = $this->getNewsArchiveChoices($connection);
+        $this->Template->calendarChoices = $this->getCalendarChoices($connection);
         $this->Template->directoryChoices = $this->getDirectoryChoices();
 
         $targetParentPageId = $this->parseSingleIdInput(Input::postRaw('targetParentPage'));
@@ -36,6 +38,8 @@ class DummyCopierModule extends BackendModule
         $this->Template->selected = [
             'sourcePages' => $this->parseIdInput(Input::postRaw('sourcePages')),
             'sourceModules' => $this->parseIdInput(Input::postRaw('sourceModules')),
+            'sourceNewsArchives' => $this->parseIdInput(Input::postRaw('sourceNewsArchives')),
+            'sourceCalendars' => $this->parseIdInput(Input::postRaw('sourceCalendars')),
             'sourceDirectories' => $this->parsePathInput(Input::postRaw('sourceDirectories')),
             'targetParentPage' => $targetParentPageId,
             'targetDirectory' => trim((string) Input::post('targetDirectory')),
@@ -53,6 +57,8 @@ class DummyCopierModule extends BackendModule
         $options = new DummyCopyOptions(
             $this->parseIdInput(Input::postRaw('sourcePages')),
             $this->parseIdInput(Input::postRaw('sourceModules')),
+            $this->parseIdInput(Input::postRaw('sourceNewsArchives')),
+            $this->parseIdInput(Input::postRaw('sourceCalendars')),
             [],
             $this->parsePathInput(Input::postRaw('sourceDirectories')),
             $targetParentPageId,
@@ -74,10 +80,14 @@ class DummyCopierModule extends BackendModule
             $result = $copier->execute($options);
 
             Message::addConfirmation(sprintf(
-                'Fertig. Seiten: %d, Module: %d, Content: %d, Verzeichnisse: %d',
+                'Fertig. Seiten: %d, Module: %d, Content: %d, Newsarchive: %d, Newsbeitraege: %d, Kalender: %d, Events: %d, Verzeichnisse: %d',
                 $result->copiedPages,
                 $result->copiedModules,
                 $result->copiedContent,
+                $result->copiedNewsArchives,
+                $result->copiedNewsItems,
+                $result->copiedCalendars,
+                $result->copiedEvents,
                 $result->copiedDirectories
             ));
 
@@ -281,6 +291,50 @@ class DummyCopierModule extends BackendModule
         }
 
         ksort($choices);
+
+        return $choices;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function getNewsArchiveChoices(Connection $connection): array
+    {
+        $rows = $connection->fetchAllAssociative('SELECT id, title FROM tl_news_archive ORDER BY title');
+        $choices = [];
+
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+
+            if ($id < 1) {
+                continue;
+            }
+
+            $title = trim((string) ($row['title'] ?? ''));
+            $choices[$id] = sprintf('%s [ID %d]', $title !== '' ? $title : ('Newsarchiv ' . $id), $id);
+        }
+
+        return $choices;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function getCalendarChoices(Connection $connection): array
+    {
+        $rows = $connection->fetchAllAssociative('SELECT id, title FROM tl_calendar ORDER BY title');
+        $choices = [];
+
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+
+            if ($id < 1) {
+                continue;
+            }
+
+            $title = trim((string) ($row['title'] ?? ''));
+            $choices[$id] = sprintf('%s [ID %d]', $title !== '' ? $title : ('Kalender ' . $id), $id);
+        }
 
         return $choices;
     }

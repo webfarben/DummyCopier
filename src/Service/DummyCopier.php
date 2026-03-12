@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Webfarben\DummyCopier\Service;
 
+use Contao\StringUtil;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Filesystem\Filesystem;
 
@@ -29,6 +30,10 @@ final class DummyCopier
             $result->copiedModules = $options->copyModules ? $this->countRows('tl_module', $options->sourceModuleIds) : 0;
             $result->copiedContent = $this->estimateContentCount($options);
             $result->copiedDirectories = $options->copyDirectories ? \count($options->sourceDirectories) : 0;
+            $result->copiedNewsArchives = $this->countRows('tl_news_archive', $options->sourceNewsArchiveIds);
+            $result->copiedNewsItems = $this->countByPid('tl_news', 'pid', $options->sourceNewsArchiveIds);
+            $result->copiedCalendars = $this->countRows('tl_calendar', $options->sourceCalendarIds);
+            $result->copiedEvents = $this->countByPid('tl_calendar_events', 'pid', $options->sourceCalendarIds);
             $result->addNote('Dry-Run aktiv: Es wurden keine Daten geschrieben.');
 
             return $result;
@@ -49,6 +54,14 @@ final class DummyCopier
                 }
             }
 
+            if ($options->sourceNewsArchiveIds !== []) {
+                $result->newsArchiveMap = $this->copyNewsArchives($options->sourceNewsArchiveIds, $options->namePrefix, $result);
+            }
+
+            if ($options->sourceCalendarIds !== []) {
+                $result->calendarMap = $this->copyCalendars($options->sourceCalendarIds, $options->namePrefix, $result);
+            }
+
             if ($options->targetArticleId > 0) {
                 foreach ($options->sourceContentIds as $sourceContentId) {
                     $this->copySingleContent($sourceContentId, $options->targetArticleId, $result->moduleMap, $result);
@@ -56,6 +69,10 @@ final class DummyCopier
             }
 
             $this->rewriteReferences($result);
+
+            if ($options->copyModules) {
+                $this->rewriteModuleArchiveReferences($result);
+            }
 
             if ($options->copyDirectories) {
                 $this->copyDirectories($options, $result);
@@ -287,6 +304,166 @@ final class DummyCopier
         }
     }
 
+    private function rewriteModuleArchiveReferences(DummyCopyResult $result): void
+    {
+        if ($result->moduleMap === []) {
+            return;
+        }
+
+        foreach ($result->moduleMap as $newModuleId) {
+            $row = $this->fetchRow('tl_module', $newModuleId);
+
+            if ($row === null) {
+                continue;
+            }
+
+            $updates = [];
+
+            if (array_key_exists('news_archives', $row) && $result->newsArchiveMap !== []) {
+                $updates['news_archives'] = $this->remapSerializedIds((string) ($row['news_archives'] ?? ''), $result->newsArchiveMap);
+            }
+
+            if (array_key_exists('cal_calendar', $row) && $result->calendarMap !== []) {
+                $updates['cal_calendar'] = $this->remapSerializedIds((string) ($row['cal_calendar'] ?? ''), $result->calendarMap);
+            }
+
+            if ($updates !== []) {
+                $updates['tstamp'] = time();
+                $this->connection->update('tl_module', $updates, ['id' => $newModuleId]);
+            }
+        }
+    }
+
+    /**
+     * @param array<int> $sourceArchiveIds
+     *
+     * @return array<int,int>
+     */
+    private function copyNewsArchives(array $sourceArchiveIds, string $prefix, DummyCopyResult $result): array
+    {
+        $map = [];
+
+        foreach ($sourceArchiveIds as $sourceArchiveId) {
+            $archiveRow = $this->fetchRow('tl_news_archive', (int) $sourceArchiveId);
+
+            if ($archiveRow === null) {
+                $result->addNote(sprintf('Newsarchiv %d nicht gefunden, wurde uebersprungen.', $sourceArchiveId));
+                continue;
+            }
+
+            unset($archiveRow['id']);
+            $archiveRow['tstamp'] = time();
+
+            if (isset($archiveRow['title'])) {
+                $archiveRow['title'] = $this->prefixed((string) $archiveRow['title'], $prefix);
+            }
+
+            if (isset($archiveRow['jumpTo']) && isset($result->pageMap[(int) $archiveRow['jumpTo']])) {
+                $archiveRow['jumpTo'] = $result->pageMap[(int) $archiveRow['jumpTo']];
+            }
+
+            $newArchiveId = $this->insertRow('tl_news_archive', $archiveRow);
+            $map[(int) $sourceArchiveId] = $newArchiveId;
+            $result->copiedNewsArchives++;
+
+            $newsIds = $this->connection->fetchFirstColumn('SELECT id FROM tl_news WHERE pid = ? ORDER BY date, sorting, id', [(int) $sourceArchiveId]);
+
+            foreach ($newsIds as $newsId) {
+                $newsRow = $this->fetchRow('tl_news', (int) $newsId);
+
+                if ($newsRow === null) {
+                    continue;
+                }
+
+                unset($newsRow['id']);
+                $newsRow['pid'] = $newArchiveId;
+                $newsRow['tstamp'] = time();
+
+                if (isset($newsRow['headline'])) {
+                    $newsRow['headline'] = $this->prefixed((string) $newsRow['headline'], $prefix);
+                }
+
+                if (isset($newsRow['alias']) && trim((string) $newsRow['alias']) !== '') {
+                    $newsRow['alias'] = $this->makeUniqueAliasInTable('tl_news', $this->prefixed((string) $newsRow['alias'], $prefix));
+                }
+
+                if (isset($newsRow['jumpTo']) && isset($result->pageMap[(int) $newsRow['jumpTo']])) {
+                    $newsRow['jumpTo'] = $result->pageMap[(int) $newsRow['jumpTo']];
+                }
+
+                $this->insertRow('tl_news', $newsRow);
+                $result->copiedNewsItems++;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param array<int> $sourceCalendarIds
+     *
+     * @return array<int,int>
+     */
+    private function copyCalendars(array $sourceCalendarIds, string $prefix, DummyCopyResult $result): array
+    {
+        $map = [];
+
+        foreach ($sourceCalendarIds as $sourceCalendarId) {
+            $calendarRow = $this->fetchRow('tl_calendar', (int) $sourceCalendarId);
+
+            if ($calendarRow === null) {
+                $result->addNote(sprintf('Kalender %d nicht gefunden, wurde uebersprungen.', $sourceCalendarId));
+                continue;
+            }
+
+            unset($calendarRow['id']);
+            $calendarRow['tstamp'] = time();
+
+            if (isset($calendarRow['title'])) {
+                $calendarRow['title'] = $this->prefixed((string) $calendarRow['title'], $prefix);
+            }
+
+            if (isset($calendarRow['jumpTo']) && isset($result->pageMap[(int) $calendarRow['jumpTo']])) {
+                $calendarRow['jumpTo'] = $result->pageMap[(int) $calendarRow['jumpTo']];
+            }
+
+            $newCalendarId = $this->insertRow('tl_calendar', $calendarRow);
+            $map[(int) $sourceCalendarId] = $newCalendarId;
+            $result->copiedCalendars++;
+
+            $eventIds = $this->connection->fetchFirstColumn('SELECT id FROM tl_calendar_events WHERE pid = ? ORDER BY startTime, sorting, id', [(int) $sourceCalendarId]);
+
+            foreach ($eventIds as $eventId) {
+                $eventRow = $this->fetchRow('tl_calendar_events', (int) $eventId);
+
+                if ($eventRow === null) {
+                    continue;
+                }
+
+                unset($eventRow['id']);
+                $eventRow['pid'] = $newCalendarId;
+                $eventRow['tstamp'] = time();
+
+                if (isset($eventRow['title'])) {
+                    $eventRow['title'] = $this->prefixed((string) $eventRow['title'], $prefix);
+                }
+
+                if (isset($eventRow['alias']) && trim((string) $eventRow['alias']) !== '') {
+                    $eventRow['alias'] = $this->makeUniqueAliasInTable('tl_calendar_events', $this->prefixed((string) $eventRow['alias'], $prefix));
+                }
+
+                if (isset($eventRow['jumpTo']) && isset($result->pageMap[(int) $eventRow['jumpTo']])) {
+                    $eventRow['jumpTo'] = $result->pageMap[(int) $eventRow['jumpTo']];
+                }
+
+                $this->insertRow('tl_calendar_events', $eventRow);
+                $result->copiedEvents++;
+            }
+        }
+
+        return $map;
+    }
+
     private function copyDirectories(DummyCopyOptions $options, DummyCopyResult $result): void
     {
         if ($options->targetDirectory === '') {
@@ -332,10 +509,15 @@ final class DummyCopier
 
     private function makeUniqueAlias(string $baseAlias): string
     {
+        return $this->makeUniqueAliasInTable('tl_page', $baseAlias);
+    }
+
+    private function makeUniqueAliasInTable(string $table, string $baseAlias): string
+    {
         $alias = $this->slugify($baseAlias);
         $counter = 1;
 
-        while ((int) $this->connection->fetchOne('SELECT COUNT(*) FROM tl_page WHERE alias = ?', [$alias]) > 0) {
+        while ((int) $this->connection->fetchOne(sprintf('SELECT COUNT(*) FROM %s WHERE alias = ?', $table), [$alias]) > 0) {
             $alias = $this->slugify($baseAlias) . '-' . $counter;
             $counter++;
         }
@@ -383,6 +565,38 @@ final class DummyCopier
         $placeholders = implode(',', array_fill(0, \count($ids), '?'));
 
         return (int) $this->connection->fetchOne(sprintf('SELECT COUNT(*) FROM %s WHERE id IN (%s)', $table, $placeholders), $ids);
+    }
+
+    private function countByPid(string $table, string $pidField, array $pidValues): int
+    {
+        if ($pidValues === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, \count($pidValues), '?'));
+
+        return (int) $this->connection->fetchOne(sprintf('SELECT COUNT(*) FROM %s WHERE %s IN (%s)', $table, $pidField, $placeholders), $pidValues);
+    }
+
+    /**
+     * @param array<int,int> $idMap
+     */
+    private function remapSerializedIds(string $serialized, array $idMap): string
+    {
+        $values = StringUtil::deserialize($serialized, true);
+        $mapped = [];
+
+        foreach ($values as $value) {
+            $id = (int) $value;
+
+            if ($id < 1) {
+                continue;
+            }
+
+            $mapped[] = (string) ($idMap[$id] ?? $id);
+        }
+
+        return StringUtil::serialize($mapped);
     }
 
     private function estimateContentCount(DummyCopyOptions $options): int

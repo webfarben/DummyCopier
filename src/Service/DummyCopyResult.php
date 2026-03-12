@@ -10,6 +10,10 @@ final class DummyCopyResult
     public int $copiedModules = 0;
     public int $copiedContent = 0;
     public int $copiedDirectories = 0;
+    public int $copiedNewsArchives = 0;
+    public int $copiedNewsItems = 0;
+    public int $copiedCalendars = 0;
+    public int $copiedEvents = 0;
 
     /** @var array<int,int> */
     public array $pageMap = [];
@@ -19,6 +23,12 @@ final class DummyCopyResult
 
     /** @var array<int,int> */
     public array $contentMap = [];
+
+    /** @var array<int,int> */
+    public array $newsArchiveMap = [];
+
+    /** @var array<int,int> */
+    public array $calendarMap = [];
 
     /** @var array<string> */
     public array $notes = [];

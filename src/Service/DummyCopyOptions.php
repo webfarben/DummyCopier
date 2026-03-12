@@ -9,6 +9,8 @@ final class DummyCopyOptions
     public function __construct(
         public readonly array $sourcePageIds,
         public readonly array $sourceModuleIds,
+        public readonly array $sourceNewsArchiveIds,
+        public readonly array $sourceCalendarIds,
         public readonly array $sourceContentIds,
         public readonly array $sourceDirectories,
         public readonly int $targetParentPageId,

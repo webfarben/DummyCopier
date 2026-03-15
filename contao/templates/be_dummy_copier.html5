@@ -308,10 +308,34 @@
           input.addEventListener('input', function () {
             var key = input.getAttribute('data-filter-for-tree');
             var query = (input.value || '').toLowerCase();
+            var items = Array.prototype.slice.call(document.querySelectorAll('[data-tree-item="' + key + '"]'));
 
-            document.querySelectorAll('[data-tree-item="' + key + '"]').forEach(function (item) {
+            if (query === '') {
+              items.forEach(function (item) {
+                item.hidden = false;
+                delete item.dataset.treeMatched;
+              });
+
+              return;
+            }
+
+            items.reverse().forEach(function (item) {
               var label = item.getAttribute('data-tree-label') || '';
-              item.hidden = query !== '' && label.indexOf(query) === -1;
+              var selfMatch = label.indexOf(query) !== -1;
+              var nested = item.querySelector(':scope > ul');
+              var childMatch = false;
+
+              if (nested) {
+                Array.prototype.forEach.call(nested.children, function (child) {
+                  if (child.matches('[data-tree-item="' + key + '"]') && child.dataset.treeMatched === '1') {
+                    childMatch = true;
+                  }
+                });
+              }
+
+              var match = selfMatch || childMatch;
+              item.hidden = !match;
+              item.dataset.treeMatched = match ? '1' : '0';
             });
           });
         });

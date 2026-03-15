@@ -27,6 +27,7 @@ class DummyCopierModule extends BackendModule
         $this->Template->action = Environment::get('request');
         $this->Template->requestToken = $this->getCsrfToken();
         $this->Template->pageChoices = $this->getPageChoices($connection);
+        $this->Template->pageTreeNodes = $this->getPageTreeNodes($connection);
         $this->Template->moduleChoices = $this->getModuleChoices($connection);
         $this->Template->newsArchiveChoices = $this->getNewsArchiveChoices($connection);
         $this->Template->calendarChoices = $this->getCalendarChoices($connection);
@@ -227,6 +228,50 @@ class DummyCopierModule extends BackendModule
         }
 
         return $choices;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getPageTreeNodes(Connection $connection): array
+    {
+        $rows = $connection->fetchAllAssociative('SELECT id, pid, title, alias FROM tl_page ORDER BY sorting, id');
+        $rowsByParent = [];
+
+        foreach ($rows as $row) {
+            $pid = (int) ($row['pid'] ?? 0);
+            $rowsByParent[$pid][] = $row;
+        }
+
+        $build = function (int $pid) use (&$build, $rowsByParent): array {
+            $nodes = [];
+
+            foreach ($rowsByParent[$pid] ?? [] as $row) {
+                $id = (int) ($row['id'] ?? 0);
+
+                if ($id < 1) {
+                    continue;
+                }
+
+                $title = trim((string) ($row['title'] ?? ''));
+                $alias = trim((string) ($row['alias'] ?? ''));
+                $label = $title !== '' ? $title : ('Seite ' . $id);
+
+                if ($alias !== '') {
+                    $label .= ' (' . $alias . ')';
+                }
+
+                $nodes[] = [
+                    'id' => $id,
+                    'label' => $label,
+                    'children' => $build($id),
+                ];
+            }
+
+            return $nodes;
+        };
+
+        return $build(0);
     }
 
     /**

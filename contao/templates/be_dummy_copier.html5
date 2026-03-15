@@ -11,6 +11,12 @@
       .dc-section { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px; }
       .dc-section h3 { margin: 0 0 0.75rem; font-size: 1rem; font-weight: bold; }
       .dc-hint { color: #666; font-size: 0.85rem; margin: 0.25rem 0 0.75rem; }
+      .dc-page-tree { border: 1px solid #ddd; border-radius: 4px; background: #fff; max-height: 360px; overflow: auto; padding: 0.5rem; }
+      .dc-page-tree ul { list-style: none; margin: 0.1rem 0 0.1rem 1.1rem; padding: 0; }
+      .dc-page-tree > ul { margin-left: 0; }
+      .dc-page-tree li { margin: 0.1rem 0; }
+      .dc-page-item { display: flex; align-items: center; gap: 0.45rem; }
+      .dc-page-id { color: #777; font-size: 0.8rem; }
     </style>
 
     <!-- Abschnitt 1: Quell-Seiten -->
@@ -19,16 +25,48 @@
       <p class="dc-hint">Alle Artikel und Inhaltselemente der gewaehlten Seiten werden automatisch mitkopiert (sofern Option "inkl. Content" aktiv ist).</p>
       <p>
         <label>Quell-Seiten (Mehrfachauswahl):<br>
-          <input class="dc-filter" type="text" data-filter-for="sourcePages" placeholder="Seiten filtern...">
+          <input class="dc-filter" type="text" data-filter-for-tree="sourcePages" placeholder="Seiten im Baum filtern...">
           <span class="dc-tools">
-            <button class="dc-button" type="button" data-select-all="sourcePages">Alle</button>
-            <button class="dc-button" type="button" data-select-none="sourcePages">Keine</button>
+            <button class="dc-button" type="button" data-check-all="sourcePages">Alle</button>
+            <button class="dc-button" type="button" data-check-none="sourcePages">Keine</button>
           </span>
-          <select id="sourcePages" name="sourcePages[]" multiple size="12" style="width:100%;">
-            <?php foreach (($this->pageChoices ?? []) as $id => $label): ?>
-              <option value="<?= (int) $id; ?>" <?= in_array((int) $id, ($this->selected['sourcePages'] ?? []), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
-            <?php endforeach; ?>
-          </select>
+          <div class="dc-page-tree" id="sourcePages">
+            <?php
+            $selectedSourcePages = (array) ($this->selected['sourcePages'] ?? []);
+
+            $renderNodes = static function (array $nodes) use (&$renderNodes, $selectedSourcePages): void {
+                if ($nodes === []) {
+                    return;
+                }
+
+                echo '<ul>';
+
+                foreach ($nodes as $node) {
+                    $id = (int) ($node['id'] ?? 0);
+                    $label = (string) ($node['label'] ?? ('Seite ' . $id));
+                    $children = (array) ($node['children'] ?? []);
+                    $checked = in_array($id, $selectedSourcePages, true) ? 'checked' : '';
+
+                    echo '<li data-tree-item="sourcePages" data-tree-label="' . htmlspecialchars(strtolower($label), ENT_QUOTES, 'UTF-8') . '">';
+                    echo '<label class="dc-page-item">';
+                    echo '<input type="checkbox" name="sourcePages[]" value="' . $id . '" ' . $checked . '>';
+                    echo '<span>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+                    echo '<span class="dc-page-id">[ID ' . $id . ']</span>';
+                    echo '</label>';
+
+                    if ($children !== []) {
+                        $renderNodes($children);
+                    }
+
+                    echo '</li>';
+                }
+
+                echo '</ul>';
+            };
+
+            $renderNodes((array) ($this->pageTreeNodes ?? []));
+            ?>
+          </div>
         </label>
       </p>
     </div>
@@ -185,6 +223,18 @@
           });
         });
 
+        document.querySelectorAll('[data-filter-for-tree]').forEach(function (input) {
+          input.addEventListener('input', function () {
+            var key = input.getAttribute('data-filter-for-tree');
+            var query = (input.value || '').toLowerCase();
+
+            document.querySelectorAll('[data-tree-item="' + key + '"]').forEach(function (item) {
+              var label = item.getAttribute('data-tree-label') || '';
+              item.hidden = query !== '' && label.indexOf(query) === -1;
+            });
+          });
+        });
+
         document.querySelectorAll('[data-select-all]').forEach(function (button) {
           button.addEventListener('click', function () {
             var select = byId(button.getAttribute('data-select-all'));
@@ -201,6 +251,28 @@
             if (!select) { return; }
             Array.prototype.forEach.call(select.options, function (option) {
               option.selected = false;
+            });
+          });
+        });
+
+        document.querySelectorAll('[data-check-all]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            var key = button.getAttribute('data-check-all');
+
+            document.querySelectorAll('[data-tree-item="' + key + '"] input[type="checkbox"]').forEach(function (checkbox) {
+              if (!checkbox.closest('li').hidden) {
+                checkbox.checked = true;
+              }
+            });
+          });
+        });
+
+        document.querySelectorAll('[data-check-none]').forEach(function (button) {
+          button.addEventListener('click', function () {
+            var key = button.getAttribute('data-check-none');
+
+            document.querySelectorAll('[data-tree-item="' + key + '"] input[type="checkbox"]').forEach(function (checkbox) {
+              checkbox.checked = false;
             });
           });
         });

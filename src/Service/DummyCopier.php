@@ -426,7 +426,7 @@ final class DummyCopier
             $map[(int) $sourceArchiveId] = $newArchiveId;
             $result->copiedNewsArchives++;
 
-            $newsIds = $this->connection->fetchFirstColumn('SELECT id FROM tl_news WHERE pid = ? ORDER BY date, sorting, id', [(int) $sourceArchiveId]);
+            $newsIds = $this->connection->fetchFirstColumn('SELECT id FROM tl_news WHERE pid = ? ORDER BY date, id', [(int) $sourceArchiveId]);
 
             foreach ($newsIds as $newsId) {
                 $newsRow = $this->fetchRow('tl_news', (int) $newsId);
@@ -492,7 +492,7 @@ final class DummyCopier
             $map[(int) $sourceCalendarId] = $newCalendarId;
             $result->copiedCalendars++;
 
-            $eventIds = $this->connection->fetchFirstColumn('SELECT id FROM tl_calendar_events WHERE pid = ? ORDER BY startTime, sorting, id', [(int) $sourceCalendarId]);
+            $eventIds = $this->connection->fetchFirstColumn('SELECT id FROM tl_calendar_events WHERE pid = ? ORDER BY startTime, id', [(int) $sourceCalendarId]);
 
             foreach ($eventIds as $eventId) {
                 $eventRow = $this->fetchRow('tl_calendar_events', (int) $eventId);

@@ -386,7 +386,7 @@ final class DummyCopier
             $this->connection->update(
                 'tl_news',
                 [
-                    'related' => StringUtil::serialize($mappedRelated),
+                    'related' => serialize($mappedRelated),
                     'tstamp' => time(),
                 ],
                 ['id' => $newNewsId]
@@ -658,7 +658,7 @@ final class DummyCopier
             $mapped[] = (string) ($idMap[$id] ?? $id);
         }
 
-        return StringUtil::serialize($mapped);
+        return serialize($mapped);
     }
 
     private function estimateContentCount(DummyCopyOptions $options): int

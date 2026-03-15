@@ -50,3 +50,7 @@ Das Backend-Modul `Dummy Copier` erscheint anschliessend unter `System`.
 
 - Nach Dateikopien ggf. `php vendor/bin/console contao:filesync` ausfuehren, damit die DBAFS-Daten synchronisiert werden.
 - Das Bundle ist fuer pragmatische Redaktions- und Setup-Workflows gedacht. Projektspezifische Sonderfelder oder Referenzen koennen bei Bedarf erweitert werden.
+
+## Changelog
+
+- Siehe `CHANGELOG.md` fuer die dokumentierten Aenderungen ab `1.1.0`.

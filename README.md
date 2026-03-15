@@ -1,43 +1,52 @@
-# Contao Dummy Copier (Scaffold)
+# Contao Dummy Copier
 
-Dieses Bundle stellt ein Backend-Modul `Dummy Copier` bereit, um bestehende Dummyseiten, Inhalte, Module und Verzeichnisse zu kopieren und Referenzen automatisiert umzubiegen.
+Dieses Bundle stellt ein Backend-Modul `Dummy Copier` bereit, um bestehende Dummydaten in Contao kontrolliert zu vervielfaeltigen und interne Referenzen auf die neuen Zielobjekte umzubiegen.
 
-## Enthaltene Funktionen
+## Funktionsumfang
 
-- Rekursives Kopieren von Seitenbaeumen (`tl_page`)
-- Optionales Kopieren von Artikeln und Content (`tl_article`, `tl_content`)
-- Optionales Kopieren von Modulen (`tl_module`)
-- Automatisches Umstellen von:
-  - Content-Elementen vom Typ `module` auf kopierte Modul-IDs
-  - `jumpTo` in kopierten Seiten/Modulen/Content auf kopierte Seiten, falls vorhanden
-- Optionales Kopieren von Verzeichnissen (Dateisystem-Mirror)
-- Dry-Run Modus ohne Schreibzugriff
+- rekursives Kopieren von Seitenbaeumen aus `tl_page`
+- optionales Kopieren von Artikeln und verschachtelten Inhaltselementen aus `tl_article` und `tl_content`
+- optionales Kopieren von Modulen aus `tl_module`
+- optionales Kopieren von Newsarchiven samt Newsbeitraegen aus `tl_news_archive` und `tl_news`
+- optionales Kopieren von Kalendern samt Events aus `tl_calendar` und `tl_calendar_events`
+- optionales Spiegeln von Verzeichnissen im Dateisystem
+- Dry-Run zur Vorschau ohne Schreibzugriffe
+
+## Automatische Referenzanpassungen
+
+- `jumpTo` in kopierten Seiten, Modulen, Content-Elementen, Newsarchiven, News, Kalendern und Events
+- Modulreferenzen in Content-Elementen vom Typ `module`
+- Alias-Referenzen in verschachtelten Content-Elementen (`cteAlias`)
+- Archiv-Zuordnungen in kopierten Modulen (`news_archives`, `cal_calendar`)
+- Reader-Module in kopierten Modulen (`news_readerModule`, `cal_readerModule`)
+- verwandte News (`related`), sofern die referenzierten News ebenfalls mitkopiert wurden
 
 ## Installation
 
-1. Bundle in dein Contao-Projekt legen (oder als VCS-Paket einbinden).
-2. `composer install` oder `composer update acme/contao-dummy-copier`
-3. Cache leeren.
-4. Backend-Modul `Dummy Copier` unter `System` oeffnen.
+Installation ueber Packagist:
 
-## Bedienung (aktueller Stand)
+```bash
+composer require webfarben/contao-dummy-copier
+```
 
-- Quellobjekte werden ueber Mehrfachauswahlfelder ausgewaehlt (Seiten, Module, Content, Verzeichnisse).
-- Seiten und Verzeichnisse werden in Baumdarstellung (Einrueckung nach Hierarchie) angezeigt.
-- Alle Mehrfachauswahlfelder haben Live-Filter sowie `Alle`/`Keine` Buttons.
-- Ziel-Elternseite wird per Auswahlfeld gesetzt.
+Danach wie ueblich:
 
-Bei kompatibler Contao-Umgebung nutzt das Modul native `pageTree`/`fileTree` Widgets fuer Seiten und Verzeichnisse.
-Falls die Widget-Initialisierung versionsbedingt fehlschlaegt, wird automatisch auf die Select-Fallbacks gewechselt.
-- Setze optional Zielverzeichnis, Zielartikel-ID und Praefix.
-- Aktiviere Optionen nach Bedarf (`inkl. Content`, `Module kopieren`, `Verzeichnisse kopieren`, `Dry-Run`).
+```bash
+php vendor/bin/contao-setup
+php vendor/bin/console contao:migrate
+```
 
-Hinweis: Das Modul akzeptiert weiterhin CSV-Werte als Fallback, falls du Felder per POST automatisiert befuellst.
+Das Backend-Modul `Dummy Copier` erscheint anschliessend unter `System`.
 
-## Wichtige Hinweise
+## Bedienung
 
-- Nach Verzeichnis-Kopien ggf. `contao:filesync` ausfuehren, damit DBAFS konsistent ist.
-- Dieses Grundgeruest ist bewusst pragmatisch und kann erweitert werden um:
-  - PageTree/FileTree Picker statt CSV
-  - Feldspezifisches Mapping fuer News/Event/Archive-Felder in `tl_module`
-  - Job-Queue via Messenger bei sehr grossen Kopierlaeufen
+- Quellobjekte werden ueber Mehrfachauswahlfelder ausgewaehlt.
+- Seiten, Module, Newsarchive, Kalender und Verzeichnisse koennen separat kombiniert werden.
+- Alle Mehrfachauswahlfelder besitzen Live-Filter sowie `Alle`/`Keine` Buttons.
+- Inhaltselemente von Seiten werden bei aktiver Option automatisch mitkopiert.
+- Ueber ein Praefix lassen sich Titel, Namen und Aliase der Kopien kenntlich machen.
+
+## Hinweise
+
+- Nach Dateikopien ggf. `php vendor/bin/console contao:filesync` ausfuehren, damit die DBAFS-Daten synchronisiert werden.
+- Das Bundle ist fuer pragmatische Redaktions- und Setup-Workflows gedacht. Projektspezifische Sonderfelder oder Referenzen koennen bei Bedarf erweitert werden.

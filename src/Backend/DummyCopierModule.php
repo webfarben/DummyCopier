@@ -32,6 +32,7 @@ class DummyCopierModule extends BackendModule
         $this->Template->newsArchiveChoices = $this->getNewsArchiveChoices($connection);
         $this->Template->calendarChoices = $this->getCalendarChoices($connection);
         $this->Template->directoryChoices = $this->getDirectoryChoices();
+        $this->Template->directoryTreeNodes = $this->getDirectoryTreeNodes();
 
         $targetParentPageId = $this->parseSingleIdInput(Input::postRaw('targetParentPage'));
         $isPost = Input::post('FORM_SUBMIT') === 'tl_dummy_copier';
@@ -338,6 +339,52 @@ class DummyCopierModule extends BackendModule
         ksort($choices);
 
         return $choices;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getDirectoryTreeNodes(): array
+    {
+        $projectDir = (string) System::getContainer()->getParameter('kernel.project_dir');
+        $filesDir = $projectDir . '/files';
+
+        if (!is_dir($filesDir)) {
+            return [];
+        }
+
+        $build = function (string $dir) use (&$build, $projectDir): array {
+            $nodes = [];
+            $entries = @scandir($dir);
+
+            if (!$entries) {
+                return [];
+            }
+
+            foreach ($entries as $entry) {
+                if ($entry === '.' || $entry === '..' || str_starts_with($entry, '.')) {
+                    continue;
+                }
+
+                $full = $dir . '/' . $entry;
+
+                if (!is_dir($full)) {
+                    continue;
+                }
+
+                $relative = ltrim(str_replace($projectDir, '', $full), '/');
+
+                $nodes[] = [
+                    'path'     => $relative,
+                    'label'    => $entry,
+                    'children' => $build($full),
+                ];
+            }
+
+            return $nodes;
+        };
+
+        return $build($filesDir);
     }
 
     /**

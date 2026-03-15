@@ -17,6 +17,10 @@
       .dc-page-tree li { margin: 0.1rem 0; }
       .dc-page-item { display: flex; align-items: center; gap: 0.45rem; }
       .dc-page-id { color: #777; font-size: 0.8rem; }
+      .dc-tree-option { padding: 0.2rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.3rem; }
+      .dc-dir-item { cursor: pointer; border-radius: 3px; }
+      .dc-dir-item:hover { background: #f0f4f8; }
+      .dc-dir-selected { font-weight: bold; color: #0a5a8c; background: #e8f0fe; }
     </style>
 
     <!-- Abschnitt 1: Quell-Seiten -->
@@ -160,24 +164,102 @@
       <p><label><input type="checkbox" name="dryRun" value="1" <?= ($this->selected['dryRun'] ?? false) ? 'checked' : ''; ?>> Dry-Run (nur Vorschau, keine Schreibzugriffe)</label></p>
     </div>
 
-    <!-- Abschnitt 5: Ziel -->
+    <!-- Abschnitt 7: Ziel & Benennung -->
     <div class="dc-section">
       <h3>7. Ziel &amp; Benennung</h3>
+
       <p>
-        <label>Ziel-Elternseite (Pflichtfeld):<br>
-          <select name="targetParentPage" required style="width:100%;">
-            <option value="">Bitte waehlen</option>
-            <?php foreach (($this->pageChoices ?? []) as $id => $label): ?>
-              <option value="<?= (int) $id; ?>" <?= ((int) ($this->selected['targetParentPage'] ?? 0) === (int) $id) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $label, ENT_QUOTES, 'UTF-8'); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </label>
+        <strong>Ziel-Elternseite:</strong><br>
+        <span class="dc-hint">Die kopierten Seiten werden als Unterseiten der ausgewaehlten Seite angelegt.</span>
+        <input class="dc-filter" type="text" data-filter-for-tree="targetParentPage" placeholder="Seiten im Baum filtern...">
+        <div class="dc-page-tree" id="targetParentPageTree" style="max-height:280px;">
+          <div class="dc-tree-option">
+            <label class="dc-page-item">
+              <input type="radio" name="targetParentPage" value="0" <?= ((int) ($this->selected['targetParentPage'] ?? 0) === 0) ? 'checked' : ''; ?>>
+              <em>&#8212; Auf Root-Ebene einfuegen &#8212;</em>
+            </label>
+          </div>
+          <?php
+          $selectedTargetPage = (int) ($this->selected['targetParentPage'] ?? 0);
+
+          $renderTargetNodes = static function (array $nodes) use (&$renderTargetNodes, $selectedTargetPage): void {
+              if ($nodes === []) {
+                  return;
+              }
+
+              echo '<ul>';
+
+              foreach ($nodes as $node) {
+                  $id       = (int) ($node['id'] ?? 0);
+                  $label    = (string) ($node['label'] ?? ('Seite ' . $id));
+                  $children = (array) ($node['children'] ?? []);
+                  $checked  = ($id > 0 && $id === $selectedTargetPage) ? 'checked' : '';
+
+                  echo '<li data-tree-item="targetParentPage" data-tree-label="' . htmlspecialchars(strtolower($label), ENT_QUOTES, 'UTF-8') . '">';
+                  echo '<label class="dc-page-item">';
+                  echo '<input type="radio" name="targetParentPage" value="' . $id . '" ' . $checked . '>';
+                  echo '<span>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+                  echo '<span class="dc-page-id">[ID ' . $id . ']</span>';
+                  echo '</label>';
+
+                  if ($children !== []) {
+                      $renderTargetNodes($children);
+                  }
+
+                  echo '</li>';
+              }
+
+              echo '</ul>';
+          };
+
+          $renderTargetNodes((array) ($this->pageTreeNodes ?? []));
+          ?>
+        </div>
       </p>
+
       <p>
-        <label>Ziel-Verzeichnis fuer Dateien (z. B. files/kunden/kunde-x):<br>
-          <input type="text" name="targetDirectory" style="width:100%" placeholder="files/kunden/mein-kunde" value="<?= htmlspecialchars((string) ($this->selected['targetDirectory'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-        </label>
+        <strong>Ziel-Verzeichnis fuer Dateien (optional):</strong><br>
+        <span class="dc-hint">Quellverzeichnisse werden hierhin kopiert. Vorhandenes auswaehlen oder unten manuell eingeben (auch neue Pfade moeglich).</span>
+        <input class="dc-filter" type="text" data-filter-for-tree="targetDirTree" placeholder="Verzeichnisse filtern...">
+        <div class="dc-page-tree" id="targetDirTreeContainer" style="max-height:220px;">
+          <?php
+          $selectedTargetDir = (string) ($this->selected['targetDirectory'] ?? '');
+
+          $renderDirNodes = static function (array $nodes) use (&$renderDirNodes, $selectedTargetDir): void {
+              if ($nodes === []) {
+                  return;
+              }
+
+              echo '<ul>';
+
+              foreach ($nodes as $node) {
+                  $path     = (string) ($node['path'] ?? '');
+                  $label    = (string) ($node['label'] ?? $path);
+                  $children = (array) ($node['children'] ?? []);
+                  $selClass = ($path !== '' && $path === $selectedTargetDir) ? ' dc-dir-selected' : '';
+
+                  echo '<li data-tree-item="targetDirTree" data-tree-label="' . htmlspecialchars(strtolower($label), ENT_QUOTES, 'UTF-8') . '" data-dir-path="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '">';
+                  echo '<span class="dc-page-item dc-dir-item' . $selClass . '" title="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '">';
+                  echo '<span>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+                  echo '<span class="dc-page-id">' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '</span>';
+                  echo '</span>';
+
+                  if ($children !== []) {
+                      $renderDirNodes($children);
+                  }
+
+                  echo '</li>';
+              }
+
+              echo '</ul>';
+          };
+
+          $renderDirNodes((array) ($this->directoryTreeNodes ?? []));
+          ?>
+        </div>
+        <input type="text" id="targetDirectory" name="targetDirectory" style="width:100%; margin-top:0.5rem;" placeholder="z. B. files/kunden/mein-kunde" value="<?= htmlspecialchars((string) ($this->selected['targetDirectory'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
       </p>
+
       <p>
         <label>Praefix fuer Titel / Name / Alias der Kopien:<br>
           <input type="text" name="namePrefix" style="width:100%" placeholder="z. B. kunde-x-" value="<?= htmlspecialchars((string) ($this->selected['namePrefix'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -387,6 +469,43 @@
             refreshAllParentStates();
           });
         });
+
+        // Verzeichnisbaum: Klick befuellt Texteingabe
+        document.querySelectorAll('.dc-dir-item').forEach(function (span) {
+          span.addEventListener('click', function () {
+            var li = span.closest('[data-dir-path]');
+            var path = li ? li.getAttribute('data-dir-path') : '';
+            var input = document.getElementById('targetDirectory');
+
+            if (input) {
+              input.value = path || '';
+            }
+
+            document.querySelectorAll('.dc-dir-item').forEach(function (s) {
+              s.classList.remove('dc-dir-selected');
+            });
+
+            span.classList.add('dc-dir-selected');
+          });
+        });
+
+        // Texteingabe Ziel-Verzeichnis: Auswahl im Baum aufheben wenn manuell getippt
+        (function () {
+          var input = document.getElementById('targetDirectory');
+          if (!input) { return; }
+          input.addEventListener('input', function () {
+            var val = input.value.trim();
+            document.querySelectorAll('.dc-dir-item').forEach(function (s) {
+              var li = s.closest('[data-dir-path]');
+              var path = li ? li.getAttribute('data-dir-path') : '';
+              if (path === val) {
+                s.classList.add('dc-dir-selected');
+              } else {
+                s.classList.remove('dc-dir-selected');
+              }
+            });
+          });
+        })();
       })();
     </script>
 </form>

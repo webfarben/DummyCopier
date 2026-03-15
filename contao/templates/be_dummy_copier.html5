@@ -212,6 +212,87 @@
       (function () {
         function byId(id) { return document.getElementById(id); }
 
+        function childCheckboxesOf(li) {
+          var nested = li.querySelector(':scope > ul');
+          return nested ? nested.querySelectorAll('input[type="checkbox"]') : [];
+        }
+
+        function parentLiOf(li) {
+          var parentUl = li.parentElement;
+          if (!parentUl || parentUl.classList.contains('dc-page-tree')) {
+            return null;
+          }
+
+          var candidate = parentUl.closest('li[data-tree-item="sourcePages"]');
+          return candidate || null;
+        }
+
+        function updateParentState(li) {
+          var children = childCheckboxesOf(li);
+          if (!children.length) {
+            return;
+          }
+
+          var own = li.querySelector(':scope > label input[type="checkbox"]');
+          if (!own) {
+            return;
+          }
+
+          var checkedCount = 0;
+          children.forEach(function (cb) {
+            if (cb.checked) {
+              checkedCount++;
+            }
+          });
+
+          if (checkedCount === 0) {
+            own.checked = false;
+            own.indeterminate = false;
+          } else if (checkedCount === children.length) {
+            own.checked = true;
+            own.indeterminate = false;
+          } else {
+            own.checked = false;
+            own.indeterminate = true;
+          }
+        }
+
+        function cascadeToChildren(li, checked) {
+          childCheckboxesOf(li).forEach(function (cb) {
+            cb.checked = checked;
+            cb.indeterminate = false;
+          });
+        }
+
+        function refreshAllParentStates() {
+          var nodes = Array.prototype.slice.call(document.querySelectorAll('li[data-tree-item="sourcePages"]'));
+          nodes.reverse();
+          nodes.forEach(function (li) {
+            updateParentState(li);
+          });
+        }
+
+        document.querySelectorAll('li[data-tree-item="sourcePages"] > label input[type="checkbox"]').forEach(function (checkbox) {
+          checkbox.addEventListener('change', function () {
+            var li = checkbox.closest('li[data-tree-item="sourcePages"]');
+            if (!li) {
+              return;
+            }
+
+            if (!checkbox.indeterminate) {
+              cascadeToChildren(li, checkbox.checked);
+            }
+
+            var parent = parentLiOf(li);
+            while (parent) {
+              updateParentState(parent);
+              parent = parentLiOf(parent);
+            }
+          });
+        });
+
+        refreshAllParentStates();
+
         document.querySelectorAll('[data-filter-for]').forEach(function (input) {
           input.addEventListener('input', function () {
             var select = byId(input.getAttribute('data-filter-for'));
@@ -262,8 +343,11 @@
             document.querySelectorAll('[data-tree-item="' + key + '"] input[type="checkbox"]').forEach(function (checkbox) {
               if (!checkbox.closest('li').hidden) {
                 checkbox.checked = true;
+                checkbox.indeterminate = false;
               }
             });
+
+            refreshAllParentStates();
           });
         });
 
@@ -273,7 +357,10 @@
 
             document.querySelectorAll('[data-tree-item="' + key + '"] input[type="checkbox"]').forEach(function (checkbox) {
               checkbox.checked = false;
+              checkbox.indeterminate = false;
             });
+
+            refreshAllParentStates();
           });
         });
       })();
